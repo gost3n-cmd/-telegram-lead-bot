@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -25,23 +26,27 @@ from bot.utils.logger import setup_logger
 
 def _build_storage(config: BotConfig):
     """Build storage stack: Excel (primary) + optional Google Sheets (secondary)."""
+    logger.info("=== STORAGE DEBUG START ===")
+    logger.info(f"ENV GOOGLE_CREDENTIALS_JSON exists: {os.getenv('GOOGLE_CREDENTIALS_JSON') is not None}")
+    logger.info(f"GOOGLE_SHEET_ID: {config.google_sheet_id}")
+
     excel = ExcelStorage(
         file_path=config.excel_file_path,
         sheet_name=config.leads_sheet_name,
     )
 
-    if config.google_sheet_id and config.google_credentials_path:
+    if os.getenv("GOOGLE_CREDENTIALS_JSON") and config.google_sheet_id:
         from bot.storage.google_sheets import GoogleSheetsStorage
         from bot.storage.dual_storage import DualStorage
 
+        logger.info("Google Sheets ENABLE CONDITION PASSED")
         gsheets = GoogleSheetsStorage(
             sheet_id=config.google_sheet_id,
-            credentials_path=config.google_credentials_path,
         )
-        logger.info("Google Sheets secondary storage enabled")
+        logger.info("Google Sheets enabled")
         return DualStorage(excel_storage=excel, gsheets_storage=gsheets)
 
-    logger.info("Google Sheets not configured — Excel-only mode")
+    logger.info("Google Sheets DISABLED → Excel only mode")
     return excel
 
 

@@ -1,7 +1,8 @@
 """Конфигурация бота через pydantic-settings (Композиция).
 
 Раздел 16 архитектуры: BOT_TOKEN, EXCEL_FILE_PATH, LEADS_SHEET_NAME,
-LOG_LEVEL, ENVIRONMENT, GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_PATH.
+LOG_LEVEL, ENVIRONMENT, GOOGLE_SHEET_ID.
+GOOGLE_CREDENTIALS_JSON читается напрямую из os.environ в google_sheets.py.
 """
 
 from __future__ import annotations
@@ -31,10 +32,7 @@ class BotConfig(BaseSettings):
         default=None,
         description="ID Google Sheets таблицы для live-дашборда",
     )
-    google_credentials_path: Optional[str] = Field(
-        default=None,
-        description="Путь к service account JSON-файлу для Google Sheets",
-    )
+    # GOOGLE_CREDENTIALS_JSON читается напрямую из os.environ в google_sheets.py
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 config = BotConfig()

@@ -7,6 +7,7 @@ All failures are logged and swallowed — never propagates to bot flow.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 
@@ -41,11 +42,9 @@ class GoogleSheetsStorage:
     def __init__(
         self,
         sheet_id: str,
-        credentials_path: str,
         sheet_name: str = "Leads",
     ) -> None:
         self._sheet_id = sheet_id
-        self._credentials_path = credentials_path
         self._sheet_name = sheet_name
 
         self._lock = asyncio.Lock()
@@ -56,17 +55,17 @@ class GoogleSheetsStorage:
         self._initialized: bool = False
         self._disabled: bool = False
 
-        if not os.path.exists(credentials_path):
+        if not os.getenv("GOOGLE_CREDENTIALS_JSON"):
             logger.error(
-                f"GS credentials file not found at '{credentials_path}' — "
-                f"Google Sheets disabled, falling back to Excel-only mode"
+                "GOOGLE_CREDENTIALS_JSON is not set — "
+                "Google Sheets disabled, falling back to Excel-only mode"
             )
             self._disabled = True
             return
 
         logger.info(
             f"GoogleSheetsStorage initialized | sheet_id={sheet_id} "
-            f"| creds={credentials_path} | sheet={sheet_name}"
+            f"| sheet={sheet_name}"
         )
 
     def _run_sync(self, func, *args):
@@ -75,14 +74,13 @@ class GoogleSheetsStorage:
         return loop.run_in_executor(self._executor, func, *args)
 
     @staticmethod
-    def _authenticate_sync(credentials_path: str, sheet_id: str, sheet_name: str):
+    def _authenticate_sync(sheet_id: str, sheet_name: str):
         """Synchronous auth + worksheet lookup. Runs in executor."""
         import gspread
         from google.oauth2.service_account import Credentials
 
-        creds = Credentials.from_service_account_file(
-            credentials_path, scopes=_GSHEETS_SCOPES
-        )
+        creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=_GSHEETS_SCOPES)
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_key(sheet_id)
 
@@ -106,7 +104,6 @@ class GoogleSheetsStorage:
             try:
                 self._client, self._worksheet = await self._run_sync(
                     self._authenticate_sync,
-                    self._credentials_path,
                     self._sheet_id,
                     self._sheet_name,
                 )
