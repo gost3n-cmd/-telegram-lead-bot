@@ -64,13 +64,16 @@ def build_application(config: BotConfig) -> tuple[Bot, Dispatcher]:
 
     # Infrastructure: хранилище (Excel + опционально Google Sheets)
     storage = _build_storage(config)
-    
-logger.info(f"STORAGE TYPE: {type(storage).__name__}")
+    logger.info(f"STORAGE TYPE: {type(storage).__name__}")
+    logger.info(f"Excel path: {config.excel_file_path}")
+    logger.info(f"Storage class: {storage.__class__.__name__}")
+
     # Application: сервис с внедрённой зависимостью (StorageInterface)
     lead_service = LeadService(storage=storage)
 
     # Presentation: регистрация роутеров
     dp.include_router(start_router)
+
     # email_router получает lead_service через фабрику — DI через closure
     email_router = create_email_router(lead_service)
     dp.include_router(email_router)
