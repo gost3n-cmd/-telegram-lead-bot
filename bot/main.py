@@ -23,10 +23,32 @@ from bot.storage.excel_storage import ExcelStorage
 from bot.utils.logger import setup_logger
 
 
+def _build_storage(config: BotConfig):
+    """Build storage stack: Excel (primary) + optional Google Sheets (secondary)."""
+    excel = ExcelStorage(
+        file_path=config.excel_file_path,
+        sheet_name=config.leads_sheet_name,
+    )
+
+    if config.google_sheet_id and config.google_credentials_path:
+        from bot.storage.google_sheets import GoogleSheetsStorage
+        from bot.storage.dual_storage import DualStorage
+
+        gsheets = GoogleSheetsStorage(
+            sheet_id=config.google_sheet_id,
+            credentials_path=config.google_credentials_path,
+        )
+        logger.info("Google Sheets secondary storage enabled")
+        return DualStorage(excel_storage=excel, gsheets_storage=gsheets)
+
+    logger.info("Google Sheets not configured — Excel-only mode")
+    return excel
+
+
 def build_application(config: BotConfig) -> tuple[Bot, Dispatcher]:
     """Собрать приложение: Bot, Dispatcher, DI-зависимости.
 
-    Единственная точка, где импортируется ExcelStorage.
+    Единственная точка, где импортируются конкретные реализации хранилища.
     """
     # Логирование
     setup_logger(level=config.log_level)
@@ -40,12 +62,10 @@ def build_application(config: BotConfig) -> tuple[Bot, Dispatcher]:
     # Dispatcher с MemoryStorage для FSM
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Infrastructure: конкретная реализация хранилища
-    storage = ExcelStorage(
-        file_path=config.excel_file_path,
-        sheet_name=config.leads_sheet_name,
-    )
-
+    # Infrastructure: хранилище (Excel + опционально Google Sheets)
+    storage = _build_storage(config)
+    
+logger.info(f"STORAGE TYPE: {type(storage).__name__}")
     # Application: сервис с внедрённой зависимостью (StorageInterface)
     lead_service = LeadService(storage=storage)
 
