@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional
 
@@ -46,6 +47,7 @@ class ExcelStorage(StorageInterface):
         self._sheet_name = sheet_name
         self._lock = AsyncIOLock()
         self._executor = _IO_EXECUTOR
+        logger.info(f"ExcelStorage initialized | file_path={file_path} | abs={os.path.abspath(file_path)} | sheet={sheet_name}")
 
     def _run_sync(self, func, *args):
         """Выполнить синхронную openpyxl-операцию в thread pool."""
@@ -65,13 +67,12 @@ class ExcelStorage(StorageInterface):
         Если файла нет — создаётся новый workbook (раздел 4.5 архитектуры:
         бот создаёт лист Leads при первом сохранённом лиде, если файла нет).
         """
-        import os
         if not os.path.exists(file_path):
             # Убедиться, что родительский каталог существует
             parent = os.path.dirname(file_path)
             if parent:
                 os.makedirs(parent, exist_ok=True)
-            logger.info(f"Excel file not found, creating new: {file_path}")
+            logger.info(f"CREATING new Excel file: {os.path.abspath(file_path)}")
             wb = Workbook()
             ws = wb.active
             ws.title = "Leads"
@@ -87,6 +88,7 @@ class ExcelStorage(StorageInterface):
             wb.save(file_path)
 
             return wb
+        logger.info(f"LOADING existing Excel file: {os.path.abspath(file_path)}")
         try:
             return load_workbook(file_path)
         except Exception as exc:

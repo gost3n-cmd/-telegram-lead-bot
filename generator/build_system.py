@@ -8,6 +8,7 @@ KPI & Analytics) + Content Bank deliverable + Reality Check appendix.
 Run: python3 build_system.py  (writes ai_content_os.xlsx next to this file)
 """
 import os
+import sys
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -26,7 +27,12 @@ from openpyxl.utils import get_column_letter
 #
 # Алгоритм (раздел 4.3): read-if-exists → rebuild owned → preserve foreign → save
 # ════════════════════════════════════════════════════════════════════
-OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "ai_content_os.xlsx")
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _project_root)
+from bot.config import BotConfig
+_env_path = os.path.join(_project_root, ".env")
+_config = BotConfig(_env_file=_env_path)
+OUT_PATH = os.path.join(_project_root, _config.excel_file_path)
 
 # Позитивный список владения (раздел 4.2) — 11 точных имён.
 # Порядок = канонический порядок вкладок после reorder_owned_first.

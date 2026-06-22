@@ -8,11 +8,15 @@ KPI & Analytics) + Content Bank deliverable + Reality Check appendix.
 Run: python3 build_system.py  (writes ai_content_os.xlsx next to this file)
 """
 import os
+import sys
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_content_os.xlsx")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bot.config import BotConfig
+_config = BotConfig()
+OUT_PATH = os.path.abspath(_config.excel_file_path)
 
 OWNED_SHEETS = [
     "🏠 Home",
