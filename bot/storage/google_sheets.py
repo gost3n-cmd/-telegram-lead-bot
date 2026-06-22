@@ -110,8 +110,8 @@ class GoogleSheetsStorage:
                 self._initialized = True
                 logger.info("GS: authenticated and worksheet ready")
             except Exception as exc:
-                logger.error(f"GS initialization failed: {exc}", exc_info=True)
-                self._disabled = True
+                logger.error("GS initialization failed", exc_info=True)
+                raise
 
     async def append_lead(self, lead: Lead) -> None:
         """Append one lead row to Google Sheets. Best-effort, never raises."""
