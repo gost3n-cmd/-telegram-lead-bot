@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 
 from loguru import logger
 
@@ -55,6 +54,15 @@ class GoogleSheetsStorage:
         self._client: object = None
         self._worksheet: object = None
         self._initialized: bool = False
+        self._disabled: bool = False
+
+        if not os.path.exists(credentials_path):
+            logger.error(
+                f"GS credentials file not found at '{credentials_path}' — "
+                f"Google Sheets disabled, falling back to Excel-only mode"
+            )
+            self._disabled = True
+            return
 
         logger.info(
             f"GoogleSheetsStorage initialized | sheet_id={sheet_id} "
@@ -90,18 +98,11 @@ class GoogleSheetsStorage:
 
     async def _ensure_initialized(self) -> None:
         """Lazy init: authenticate and resolve worksheet on first use."""
-        if self._initialized:
+        if self._initialized or self._disabled:
             return
         async with self._lock:
-            if self._initialized:
+            if self._initialized or self._disabled:
                 return
-            if not os.path.exists(self._credentials_path):
-                logger.error(
-                    f"GS credentials file not found: {self._credentials_path}"
-                )
-                raise FileNotFoundError(
-                    f"Credentials file not found: {self._credentials_path}"
-                )
             try:
                 self._client, self._worksheet = await self._run_sync(
                     self._authenticate_sync,
@@ -113,12 +114,17 @@ class GoogleSheetsStorage:
                 logger.info("GS: authenticated and worksheet ready")
             except Exception as exc:
                 logger.error(f"GS initialization failed: {exc}")
-                raise
+                self._disabled = True
 
     async def append_lead(self, lead: Lead) -> None:
         """Append one lead row to Google Sheets. Best-effort, never raises."""
         try:
+            if self._disabled:
+                return
+
             await self._ensure_initialized()
+            if self._disabled:
+                return
 
             row = [
                 lead.telegram_id,
@@ -132,9 +138,5 @@ class GoogleSheetsStorage:
                 await self._run_sync(self._worksheet.append_row, row)
 
             logger.debug(f"GS row appended: {lead.email}")
-        except FileNotFoundError:
-            logger.error(
-                f"GS credentials file missing at {self._credentials_path} — skipping"
-            )
         except Exception as exc:
             logger.error(f"GS append_lead failed for {lead.email}: {exc}")
