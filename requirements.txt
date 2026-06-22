@@ -1,21 +1,29 @@
-# Telegram Lead-Capture Bot — Dependencies
-
-# Telegram Bot Framework
-aiogram>=3.4,<4.0
-
-# Excel manipulation (shared with generator)
-openpyxl>=3.1.0
-
-# Data validation and settings
-pydantic>=2.0,<3.0
-pydantic-settings>=2.0,<3.0
-
-# Structured logging
-loguru>=0.7,<1.0
-
-# Email validation (optional — regex used by default)
-# email-validator>=2.0
-
-# Testing (development)
-pytest>=7.0
-pytest-asyncio>=0.23
+aiofiles==25.1.0
+aiogram==3.29.0
+aiohappyeyeballs==2.6.2
+aiohttp==3.14.1
+aiosignal==1.4.0
+annotated-types==0.7.0
+attrs==26.1.0
+certifi==2026.6.17
+et_xmlfile==2.0.0
+frozenlist==1.8.0
+idna==3.18
+iniconfig==2.3.0
+loguru==0.7.3
+magic-filter==1.0.12
+multidict==6.7.1
+openpyxl==3.1.5
+packaging==26.2
+pluggy==1.6.0
+propcache==0.5.2
+pydantic==2.13.4
+pydantic-settings==2.14.2
+pydantic_core==2.46.4
+Pygments==2.20.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+python-dotenv==1.2.2
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+yarl==1.24.2
