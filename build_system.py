@@ -8,11 +8,38 @@ KPI & Analytics) + Content Bank deliverable + Reality Check appendix.
 Run: python3 build_system.py  (writes ai_content_os.xlsx next to this file)
 """
 import os
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-wb = Workbook()
+OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_content_os.xlsx")
+
+OWNED_SHEETS = [
+    "🏠 Home",
+    "🎯 01 Strategy",
+    "📱 02 Accounts",
+    "🧠 03 Psychology",
+    "🎬 04 Content Engine",
+    "⚙️ 05 Pipeline",
+    "👥 06 Team",
+    "🛠️ 07 AI Stack",
+    "📈 08 KPI Dashboard",
+    "📚 09 Content Bank",
+    "🔬 10 Reality Check",
+]
+
+if not os.path.exists(OUT_PATH):
+    parent_dir = os.path.dirname(OUT_PATH)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
+    wb = Workbook()
+else:
+    wb = load_workbook(OUT_PATH)
+    for _name in OWNED_SHEETS:
+        if _name in wb.sheetnames:
+            wb.remove(wb[_name])
+    _seed = wb.create_sheet("_owned_seed_home_")
+    wb.active = wb.sheetnames.index(_seed.title)
 
 # ════════════════════════════════════════════════════════════════════
 # DESIGN SYSTEM — one font, one neutral ink, one accent, status colors
@@ -1472,8 +1499,6 @@ print("Sheet 10 (Reality Check) built")
 # ════════════════════════════════════════════════════════════════════
 # SAVE — portable path, runs unmodified on macOS / Linux / Windows
 # ════════════════════════════════════════════════════════════════════
-OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_content_os.xlsx")
-
 for ws in wb.worksheets:
     ws.page_setup.orientation = "landscape"
     ws.page_setup.fitToWidth = 1

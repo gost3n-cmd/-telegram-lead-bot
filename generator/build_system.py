@@ -1532,8 +1532,6 @@ print("Sheet 10 (Reality Check) built")
 # ════════════════════════════════════════════════════════════════════
 # SAVE — portable path, runs unmodified on macOS / Linux / Windows
 # ════════════════════════════════════════════════════════════════════
-OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_content_os.xlsx")
-
 for ws in wb.worksheets:
     ws.page_setup.orientation = "landscape"
     ws.page_setup.fitToWidth = 1

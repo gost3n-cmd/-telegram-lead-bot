@@ -20,11 +20,12 @@ class SaveResult:
     но с возможностью расширения в будущем.
     """
 
-    __slots__ = ("success", "error")
+    __slots__ = ("success", "error", "is_duplicate")
 
-    def __init__(self, success: bool, error: Optional[str] = None) -> None:
+    def __init__(self, success: bool, error: Optional[str] = None, is_duplicate: bool = False) -> None:
         self.success = success
         self.error = error
+        self.is_duplicate = is_duplicate
 
     def __bool__(self) -> bool:
         return self.success

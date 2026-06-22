@@ -78,26 +78,7 @@ class LeadService:
 
         email = validation.email
 
-        # 2. Проверка дубликата
-        try:
-            exists = await self._storage.email_exists(email)
-        except StorageUnavailableError as exc:
-            logger.error(f"Storage unavailable during email_exists: {exc.message}")
-            return ServiceResult(
-                success=False,
-                error_type=ServiceErrorType.STORAGE_UNAVAILABLE,
-                error_message="Хранилище недоступно",
-            )
-
-        if exists:
-            logger.info(f"Duplicate email: tg_id={telegram_id}, email={email}")
-            return ServiceResult(
-                success=False,
-                error_type=ServiceErrorType.DUPLICATE,
-                error_message="Этот email уже зарегистрирован",
-            )
-
-        # 3. Сохранение
+        # 2. Сохранение с атомарной проверкой дубликата внутри блокировки
         lead = Lead(
             telegram_id=telegram_id,
             telegram_username=telegram_username,
@@ -107,6 +88,13 @@ class LeadService:
         try:
             save_result = await self._storage.save_lead(lead)
             if not save_result.success:
+                if save_result.is_duplicate:
+                    logger.info(f"Duplicate email: tg_id={telegram_id}, email={email}")
+                    return ServiceResult(
+                        success=False,
+                        error_type=ServiceErrorType.DUPLICATE,
+                        error_message=save_result.error or "Этот email уже зарегистрирован",
+                    )
                 logger.error(f"Save failed: email={email}, error={save_result.error}")
                 return ServiceResult(
                     success=False,

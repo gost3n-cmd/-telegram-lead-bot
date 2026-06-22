@@ -52,6 +52,12 @@ class ExcelStorage(StorageInterface):
         loop = asyncio.get_running_loop()
         return loop.run_in_executor(self._executor, func, *args)
 
+    async def _load_with_schema_repair(self) -> Workbook:
+        """Загрузить workbook и гарантировать наличие листа Leads."""
+        wb = await self._run_sync(self._load_workbook_sync, self._file_path)
+        self._ensure_leads_sheet(wb)
+        return wb
+
     @staticmethod
     def _load_workbook_sync(file_path: str) -> Workbook:
         """Синхронная загрузка workbook. Вызывается в executor.
@@ -171,11 +177,16 @@ class ExcelStorage(StorageInterface):
         """Атомарно добавить одну запись в хранилище.
 
         Критическая секция: load_workbook → modify → save (раздел 14.3).
+        Проверка дубликата выполняется внутри блокировки (TOCTOU fix).
         """
         async with self._lock.acquire():
             try:
-                wb = await self._run_sync(self._load_workbook_sync, self._file_path)
-                self._ensure_leads_sheet(wb)
+                wb = await self._load_with_schema_repair()
+                # Проверка дубликата внутри той же блокировки
+                existing = await self._run_sync(self._read_emails_sync, wb, self._sheet_name)
+                if lead.email.lower() in existing:
+                    logger.info(f"Duplicate email rejected: {lead.email}")
+                    return SaveResult(success=False, error="Этот email уже зарегистрирован", is_duplicate=True)
                 ws = wb[self._sheet_name]
                 ws.append(self._lead_to_row(lead))
                 await self._run_sync(self._save_workbook_sync, wb, self._file_path)
@@ -195,7 +206,7 @@ class ExcelStorage(StorageInterface):
         """
         async with self._lock.acquire():
             try:
-                wb = await self._run_sync(self._load_workbook_sync, self._file_path)
+                wb = await self._load_with_schema_repair()
                 emails = await self._run_sync(self._read_emails_sync, wb, self._sheet_name)
                 return email.lower() in emails
             except StorageUnavailableError:
@@ -208,7 +219,7 @@ class ExcelStorage(StorageInterface):
         """Текущее количество сохранённых записей."""
         async with self._lock.acquire():
             try:
-                wb = await self._run_sync(self._load_workbook_sync, self._file_path)
+                wb = await self._load_with_schema_repair()
                 return await self._run_sync(self._count_rows_sync, wb, self._sheet_name)
             except StorageUnavailableError:
                 return 0
@@ -220,7 +231,7 @@ class ExcelStorage(StorageInterface):
         """Постраничная выборка лидов."""
         async with self._lock.acquire():
             try:
-                wb = await self._run_sync(self._load_workbook_sync, self._file_path)
+                wb = await self._load_with_schema_repair()
                 return await self._run_sync(
                     self._read_leads_sync, wb, self._sheet_name, limit, offset
                 )
@@ -233,7 +244,7 @@ class ExcelStorage(StorageInterface):
     async def health_check(self) -> bool:
         """Проверка доступности хранилища."""
         try:
-            wb = await self._run_sync(self._load_workbook_sync, self._file_path)
+            wb = await self._load_with_schema_repair()
             # Успешная загрузка = хранилище доступно
             return True
         except StorageUnavailableError:
