@@ -110,7 +110,7 @@ class GoogleSheetsStorage:
                 self._initialized = True
                 logger.info("GS: authenticated and worksheet ready")
             except Exception as exc:
-                logger.error(f"GS initialization failed: {exc}")
+                logger.error(f"GS initialization failed: {exc}", exc_info=True)
                 self._disabled = True
 
     async def append_lead(self, lead: Lead) -> None:
